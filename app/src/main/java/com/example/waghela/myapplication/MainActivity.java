@@ -67,25 +67,18 @@ public class MainActivity extends AppCompatActivity {
                 URL url = new URL("http://172.24.1.17:8080/api/items");
 
                 HttpURLConnection connection = (HttpURLConnection)url.openConnection();
-                //String urlParameters = "fizz=buzz";
                 connection.setRequestMethod("GET");
                 connection.setRequestProperty("USER-AGENT", "Mozilla/5.0");
                 connection.setRequestProperty("ACCEPT-LANGUAGE", "en-US,en;0.5");
 
                 int responseCode = connection.getResponseCode();
 
-                System.out.println("\nSending 'GET' request to URL : " + url);
-                //System.out.println("Post parameters : " + urlParameters);
-                System.out.println("Response Code : " + responseCode);
-
                 final StringBuilder output = new StringBuilder("Request URL " + url);
 
                 output.append(System.getProperty("line.separator")  + "Response Code " + responseCode);
-                output.append(System.getProperty("line.separator")  + "Type " + "GET");
                 BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                 String line = "";
                 StringBuilder responseOutput = new StringBuilder("{ \"value\" :");
-                System.out.println("output===============" + br);
                 while((line = br.readLine()) != null ) {
                     responseOutput.append(line);
                     System.out.println(line + '\n');
@@ -93,12 +86,7 @@ public class MainActivity extends AppCompatActivity {
                 responseOutput.append("}");
                 br.close();
 
-                output.append(System.getProperty("line.separator") + "Response " + System.getProperty("line.separator") + System.getProperty("line.separator"));
-                System.out.println("output===============" + responseOutput);
-
-
                 List<String> items = new ArrayList<String>();
-                //= new ArrayList<String>(Arrays.asList(responseOutput.toString()));
 
                 String strJson = responseOutput.toString();
                 try{
@@ -107,12 +95,11 @@ public class MainActivity extends AppCompatActivity {
                     for(int i=0; i < jsonArray.length(); i++){
                         JSONObject jsonObject = jsonArray.getJSONObject(i);
 
-                        //int id = Integer.parseInt(jsonObject.optString("id").toString());
                         String name = jsonObject.optString("name").toString();
                         String cost = jsonObject.optString("cost").toString();
                         String quantity = jsonObject.optString("quantity").toString();
 
-                        items.add("Name: "+ name +" Cost: "+ cost +" Quantity: " + quantity);
+                        items.add(name +"\n\tCost: "+ cost +"    Quantity: " + quantity);
                     }
                 }
                 catch (JSONException e) {
@@ -122,7 +109,6 @@ public class MainActivity extends AppCompatActivity {
                 listAdapter = new ArrayAdapter<String>(
                         this.context,
                         android.R.layout.simple_list_item_1,
-                        //R.id.list_item_textview,
                         items);
 
                 MainActivity.this.runOnUiThread(new Runnable() {
@@ -135,20 +121,13 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-
             } catch (MalformedURLException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             } catch (IOException e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
             return null;
         }
-//        protected void onPostExecute() {
-//            progress.dismiss();
-//        }
-
     }
 
 }
