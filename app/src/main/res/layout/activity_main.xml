@@ -21,7 +21,7 @@
 
     <include layout="@layout/list_view"
         android:layout_gravity="bottom"
-        android:layout_height="352dp"
+        android:layout_height="325dp"
         android:layout_width="match_parent" />
 
     <Button
@@ -34,7 +34,6 @@
         android:layout_below="@+id/textView"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
-        android:layout_marginTop="100dp"
-        android:layout_gravity="center_horizontal|top" />
+        android:layout_gravity="right|top" />
 
 </FrameLayout>

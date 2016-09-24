@@ -1,5 +1,7 @@
 package com.example.waghela.myapplication;
 
+import android.app.ActivityManager;
+import android.os.BatteryManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -12,6 +14,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -30,6 +34,7 @@ import android.widget.TextView;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.junit.rules.Stopwatch;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -64,7 +69,8 @@ public class MainActivity extends AppCompatActivity {
 
                 final TextView outputView = (TextView) findViewById(R.id.showOutput);
                 final ListView outputView1ist = (ListView) findViewById(R.id.listview);
-                URL url = new URL("http://172.24.1.17:8080/api/items");
+                URL url = new URL("http://172.24.1.17:3000/api/items");
+                URL queryurl = new URL("http://172.24.1.17:3000/api/query");
 
                 HttpURLConnection connection = (HttpURLConnection)url.openConnection();
                 connection.setRequestMethod("GET");
@@ -73,9 +79,9 @@ public class MainActivity extends AppCompatActivity {
 
                 int responseCode = connection.getResponseCode();
 
-                final StringBuilder output = new StringBuilder("Request URL " + url);
+                final StringBuilder output = new StringBuilder("");//"Request URL " + url);
 
-                output.append(System.getProperty("line.separator")  + "Response Code " + responseCode);
+                //output.append(System.getProperty("line.separator")  + "Response Code " + responseCode);
                 BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                 String line = "";
                 StringBuilder responseOutput = new StringBuilder("{ \"value\" :");
@@ -99,8 +105,120 @@ public class MainActivity extends AppCompatActivity {
                         String cost = jsonObject.optString("cost").toString();
                         String quantity = jsonObject.optString("quantity").toString();
 
-                        items.add(name +"\n\tCost: "+ cost +"    Quantity: " + quantity);
+                        items.add(name +"\nCost: "+ cost +"    Quantity: " + quantity);
                     }
+                }
+                catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                try{
+                    long startime = System.currentTimeMillis();
+                    BatteryManager bm = (BatteryManager)getSystemService(BATTERY_SERVICE);
+                    int batLevel = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+
+                    ActivityManager.MemoryInfo mi = new ActivityManager.MemoryInfo();
+                    ActivityManager activityManager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+                    activityManager.getMemoryInfo(mi);
+                    double availableMegs = mi.availMem / 1048576L;
+                    double percentAvail = (double) (mi.availMem*100.0) / mi.totalMem;
+                    output.append("Battery: " + batLevel + "%   RAM:" + (int)percentAvail + "%\n");
+                    if(batLevel < 25 || percentAvail<25){
+                        output.append("Computation from Server\n\n");
+                        connection = (HttpURLConnection)queryurl.openConnection();
+                        connection.setRequestMethod("GET");
+                        connection.setRequestProperty("USER-AGENT", "Mozilla/5.0");
+                        connection.setRequestProperty("ACCEPT-LANGUAGE", "en-US,en;0.5");
+
+
+                        br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                        line = "";
+                        responseOutput = new StringBuilder("{ \"value\" :");
+                        while((line = br.readLine()) != null ) {
+                            responseOutput.append(line);
+                            System.out.println(line + '\n');
+                        }
+                        responseOutput.append("}");
+                        br.close();
+
+                        strJson = responseOutput.toString();
+                        try{
+                            JSONObject  jsonRootObject = new JSONObject(strJson);
+                            JSONArray jsonArray = jsonRootObject.optJSONArray("value");
+
+                            output.append("Costliest Fruit\n");
+                            JSONObject jsonObject = jsonArray.getJSONObject(0);
+                            String name = jsonObject.optString("name").toString();
+                            String cost = jsonObject.optString("cost").toString();
+                            String quantity = jsonObject.optString("quantity").toString();
+                            output.append(name +"\t\tCost: "+ cost +"    Quantity: " + quantity + "\n");
+
+                            output.append("\nCheapest Fruit\n");
+                            jsonObject = jsonArray.getJSONObject(1);
+                            name = jsonObject.optString("name").toString();
+                            cost = jsonObject.optString("cost").toString();
+                            quantity = jsonObject.optString("quantity").toString();
+                            output.append(name +"\t\tCost: "+ cost +"    Quantity: " + quantity + "\n");
+
+                            output.append("\nFruit with highest availbility\n");
+                            jsonObject = jsonArray.getJSONObject(2);
+                            name = jsonObject.optString("name").toString();
+                            cost = jsonObject.optString("cost").toString();
+                            quantity = jsonObject.optString("quantity").toString();
+                            output.append(name +"\t\tCost: "+ cost +"    Quantity: " + quantity + "\n");
+
+                            output.append("\nFruit with lowest availbility\n");
+                            jsonObject = jsonArray.getJSONObject(3);
+                            name = jsonObject.optString("name").toString();
+                            cost = jsonObject.optString("cost").toString();
+                            quantity = jsonObject.optString("quantity").toString();
+                            output.append(name +"\t\tCost: "+ cost +"    Quantity: " + quantity + "\n");
+                        }
+                        catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    else{
+                        output.append("Computation from Mobile\n\n");
+                        JSONObject  jsonRootObject = new JSONObject(strJson);
+                        JSONArray jsonArray = jsonRootObject.optJSONArray("value");
+                        List<JSONObject> jsonValues = new ArrayList<JSONObject>();
+                        for(int i=0;i<jsonArray.length();i++){
+                            jsonValues.add(jsonArray.getJSONObject(i));
+                        }
+                        Collections.sort(jsonValues,new fruitPriceComparator());
+
+                        JSONObject jsonObject = jsonValues.get(jsonArray.length()-1);
+                        output.append("Costliest Fruit\n");
+                        String name = jsonObject.optString("name").toString();
+                        String cost = jsonObject.optString("cost").toString();
+                        String quantity = jsonObject.optString("quantity").toString();
+                        output.append(name +"\t\tCost: "+ cost +"    Quantity: " + quantity + "\n");
+
+                        output.append("\nCheapest Fruit\n");
+                        jsonObject = jsonArray.getJSONObject(0);
+                        name = jsonObject.optString("name").toString();
+                        cost = jsonObject.optString("cost").toString();
+                        quantity = jsonObject.optString("quantity").toString();
+                        output.append(name +"\t\tCost: "+ cost +"    Quantity: " + quantity + "\n");
+
+                        Collections.sort(jsonValues,new fruitQuantityComparator());
+                        output.append("\nFruit with highest availbility\n");
+                        jsonObject = jsonValues.get(jsonArray.length()-1);
+                        name = jsonObject.optString("name").toString();
+                        cost = jsonObject.optString("cost").toString();
+                        quantity = jsonObject.optString("quantity").toString();
+                        output.append(name +"\t\tCost: "+ cost +"    Quantity: " + quantity + "\n");
+
+                        output.append("\nFruit with lowest availbility\n");
+                        jsonObject = jsonValues.get(0);
+                        name = jsonObject.optString("name").toString();
+                        cost = jsonObject.optString("cost").toString();
+                        quantity = jsonObject.optString("quantity").toString();
+                        output.append(name +"\t\tCost: "+ cost +"    Quantity: " + quantity + "\n");
+                    }
+                    long stoptime =   System.currentTimeMillis();
+                    long elapsetime = stoptime - startime;
+                    output.append("\nResponse Time: " + elapsetime +"ms\n");
                 }
                 catch (JSONException e) {
                     e.printStackTrace();
@@ -129,5 +247,7 @@ public class MainActivity extends AppCompatActivity {
             return null;
         }
     }
+
+
 
 }
